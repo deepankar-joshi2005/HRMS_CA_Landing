@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import * as authApi from "../../api/auth.api";
-import { getRoleBasePath } from "../../config/roles";
+import { getMyHrmsSsoToken } from "../../api/businessClient.api";
+import { BUSINESS_CLIENT_ROLES, getRoleBasePath } from "../../config/roles";
 import Input from "../ui/Input";
 import Button from "../ui/Button";
 
@@ -25,8 +26,23 @@ export default function LoginForm() {
       }
 
       const user = data.data?.user;
-      if (data.data?.accessToken) {
-        localStorage.setItem("accessToken", data.data.accessToken);
+      const accessToken = data.data?.accessToken;
+
+      // Business Client accounts belong in HRMS, not on CA-Management's own
+      // dashboard — trade the login we just did for an HRMS session token and
+      // hand off there directly, same as CA-Management's own /login does.
+      if (user && accessToken && BUSINESS_CLIENT_ROLES.includes(user.role)) {
+        try {
+          const { data: sso } = await getMyHrmsSsoToken(accessToken);
+          window.location.href = `${MAIN_SITE_URL}/hrms-app/sso?token=${encodeURIComponent(sso.data.token)}`;
+          return;
+        } catch {
+          // HRMS not provisioned for this account yet — fall through below.
+        }
+      }
+
+      if (accessToken) {
+        localStorage.setItem("accessToken", accessToken);
       }
       if (user) {
         localStorage.setItem("user", JSON.stringify(user));

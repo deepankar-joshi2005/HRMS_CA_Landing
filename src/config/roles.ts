@@ -14,6 +14,11 @@ export const ROLE_LABELS = {
   [ROLES.BUSINESS_CLIENT_EMPLOYEE]: "Employee",
 };
 
+// Business Client Admin/Employee have no reason to see CA-Management's own UI —
+// their whole job lives in HRMS, so anywhere this role turns up authenticated
+// should hand off to HRMS instead of showing a CA-Management page first.
+export const BUSINESS_CLIENT_ROLES = [ROLES.BUSINESS_CLIENT_ADMIN, ROLES.BUSINESS_CLIENT_EMPLOYEE];
+
 export const ROLE_BASE_PATHS: Record<string, string> = {
   [ROLES.SUPER_ADMIN]: "super-admin",
   [ROLES.CA_FIRM_ADMIN]: "firm-admin",
