@@ -19,8 +19,20 @@ export default function SubModulePage() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [subId]);
 
-  if (!mod || !sub) {
+  // Not a real HRMS workflow page (e.g. "/login", "/signup", "/pricing") —
+  // those live on the main app, not here. Hand off there instead of bouncing
+  // back to this site's own home, which would silently swallow the path.
+  useEffect(() => {
+    if (mod && !sub) {
+      window.location.replace(mainSiteHref(`/${subId}`));
+    }
+  }, [mod, sub, subId]);
+
+  if (!mod) {
     return <Navigate to="/" replace />;
+  }
+  if (!sub) {
+    return null;
   }
 
   const Icon = sub.icon;
