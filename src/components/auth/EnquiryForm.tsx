@@ -2,32 +2,24 @@ import { useState, type FormEvent, type ChangeEvent } from "react";
 import { CheckCircle2 } from "lucide-react";
 import * as enquiryApi from "../../api/enquiry.api";
 import Input from "../ui/Input";
-import Select from "../ui/Select";
 import Textarea from "../ui/Textarea";
 import Button from "../ui/Button";
 import { sanitizePhone, validatePhone, validateEmail } from "../../utils/validators";
-import { ENQUIRY_PURPOSES, ENQUIRY_SERVICES } from "../../config/enquiry";
+
+// This form only ever enquires about HRMS, so "purpose" is sent to the
+// backend as a fixed value instead of being a user-visible field.
+const ENQUIRY_PURPOSE = "hrms";
 
 const INITIAL_FORM = {
-  purpose: "",
   name: "",
   companyName: "",
   email: "",
   phone: "",
-  city: "",
   employeeCount: "",
-  services: [] as string[],
   message: "",
 };
 
-const COMPANY_LABEL: Record<string, { label: string; placeholder: string }> = {
-  ca_firm: { label: "CA firm name", placeholder: "Sharma & Associates" },
-  hrms: { label: "Company name", placeholder: "Acme Industries Pvt Ltd" },
-  services: { label: "Company / business name", placeholder: "Acme Traders" },
-};
-
 const VALIDATORS: Record<string, (v: string) => string> = {
-  purpose: (v) => (v ? "" : "Select what you're enquiring about"),
   name: (v) => (v.trim().length >= 2 ? "" : "Enter your name"),
   companyName: (v) => (v.trim().length >= 2 ? "" : "Enter the company / firm name"),
   email: (v) => validateEmail(v, true),
@@ -58,15 +50,6 @@ export default function EnquiryForm() {
     };
   }
 
-  function toggleService(value: string) {
-    setForm((f) => ({
-      ...f,
-      services: f.services.includes(value) ? f.services.filter((s) => s !== value) : [...f.services, value],
-    }));
-    setFieldErrors((fe) => ({ ...fe, services: "" }));
-    setError("");
-  }
-
   async function handleSubmit(e: FormEvent) {
     e.preventDefault();
     setError("");
@@ -74,9 +57,6 @@ export default function EnquiryForm() {
     for (const field of Object.keys(VALIDATORS)) {
       const msg = VALIDATORS[field]((form as any)[field] || "");
       if (msg) errors[field] = msg;
-    }
-    if (form.purpose === "services" && form.services.length === 0) {
-      errors.services = "Select at least one service";
     }
     if (Object.values(errors).some(Boolean)) {
       setFieldErrors(errors);
@@ -87,14 +67,13 @@ export default function EnquiryForm() {
     setLoading(true);
     try {
       await enquiryApi.createEnquiry({
-        purpose: form.purpose,
+        purpose: ENQUIRY_PURPOSE,
         name: form.name,
         companyName: form.companyName,
         email: form.email,
         phone: form.phone,
-        city: form.city,
-        employeeCount: form.purpose === "hrms" && form.employeeCount ? Number(form.employeeCount) : null,
-        services: form.purpose === "services" ? form.services : [],
+        employeeCount: form.employeeCount ? Number(form.employeeCount) : null,
+        services: [],
         message: form.message,
       });
       setSubmitted(true);
@@ -131,59 +110,11 @@ export default function EnquiryForm() {
     );
   }
 
-  const company = COMPANY_LABEL[form.purpose] || { label: "Company / firm name", placeholder: "Your company or firm" };
-
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-4" noValidate>
       {error && (
         <div className="rounded-lg border border-danger/30 bg-danger-bg px-3.5 py-2.5 text-sm text-danger">{error}</div>
       )}
-      <Select
-        label="I'm enquiring about"
-        name="purpose"
-        required
-        value={form.purpose}
-        onChange={update("purpose")}
-        onBlur={handleBlur("purpose")}
-        error={fieldErrors.purpose}
-      >
-        <option value="" disabled>
-          Select an option
-        </option>
-        {ENQUIRY_PURPOSES.map((p) => (
-          <option key={p.value} value={p.value}>
-            {p.label}
-          </option>
-        ))}
-      </Select>
-
-      {form.purpose === "services" && (
-        <div className="flex flex-col gap-1.5">
-          <p className="text-sm font-medium text-text">
-            Services you need <span className="text-danger">*</span>
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {ENQUIRY_SERVICES.map((s) => {
-              const on = form.services.includes(s.value);
-              return (
-                <button
-                  key={s.value}
-                  type="button"
-                  onClick={() => toggleService(s.value)}
-                  aria-pressed={on}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors cursor-pointer ${
-                    on ? "border-brand bg-brand text-white" : "border-border bg-surface text-text-muted hover:text-text"
-                  }`}
-                >
-                  {s.label}
-                </button>
-              );
-            })}
-          </div>
-          {fieldErrors.services && <p className="text-xs text-danger">{fieldErrors.services}</p>}
-        </div>
-      )}
-
       <Input
         label="Your name"
         name="name"
@@ -195,14 +126,14 @@ export default function EnquiryForm() {
         placeholder="Amit Sharma"
       />
       <Input
-        label={company.label}
+        label="Company name"
         name="companyName"
         required
         value={form.companyName}
         onChange={update("companyName")}
         onBlur={handleBlur("companyName")}
         error={fieldErrors.companyName}
-        placeholder={company.placeholder}
+        placeholder="Acme Industries Pvt Ltd"
       />
       <Input
         label="Email"
@@ -229,19 +160,15 @@ export default function EnquiryForm() {
           inputMode="numeric"
           maxLength={10}
         />
-        {form.purpose === "hrms" ? (
-          <Input
-            label="No. of employees"
-            name="employeeCount"
-            value={form.employeeCount}
-            onChange={update("employeeCount")}
-            placeholder="e.g. 25"
-            inputMode="numeric"
-            maxLength={7}
-          />
-        ) : (
-          <Input label="City" name="city" value={form.city} onChange={update("city")} placeholder="e.g. Jaipur" />
-        )}
+        <Input
+          label="No. of employees"
+          name="employeeCount"
+          value={form.employeeCount}
+          onChange={update("employeeCount")}
+          placeholder="e.g. 25"
+          inputMode="numeric"
+          maxLength={7}
+        />
       </div>
       <Textarea
         label="Message"

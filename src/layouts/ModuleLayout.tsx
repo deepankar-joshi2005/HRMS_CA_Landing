@@ -110,7 +110,7 @@ export default function ModuleLayout() {
 
           <Link
             to="/login"
-            className="hidden shrink-0 whitespace-nowrap rounded-xl px-2 py-2 text-sm font-semibold text-slate-200 transition-colors hover:text-violet-300 min-[400px]:inline-flex sm:px-4"
+            className="inline-flex shrink-0 whitespace-nowrap rounded-xl px-2 py-2 text-sm font-semibold text-slate-200 transition-colors hover:text-violet-300 sm:px-4"
           >
             Log In
           </Link>
@@ -171,13 +171,6 @@ export default function ModuleLayout() {
               >
                 Resources
               </a>
-              <Link
-                to="/login"
-                onClick={() => setMenuOpen(false)}
-                className="rounded-lg px-3 py-2.5 text-left text-sm font-medium text-slate-300 min-[400px]:hidden"
-              >
-                Log In
-              </Link>
             </nav>
           </div>
         )}
